@@ -60,6 +60,21 @@ export async function GET(request) {
     await cfCheck(page);
 
     console.log("page title", await page.title());
+
+    // 获取网页的实际高度
+    const bodyHeight = await page.evaluate(() => {
+      return Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+    });
+
+    // 设置视口高度为网页的实际高度
+    await page.setViewport({ width: 1920, height: bodyHeight });
+
     const blob = await page.screenshot({ type: "png" });
 
     const headers = new Headers();
