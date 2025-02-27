@@ -18,7 +18,6 @@ const puppeteer = require("puppeteer-core");
 export async function GET(request) {
   const url = new URL(request.url);
   const urlStr = url.searchParams.get("url");
-
   if (!urlStr) {
     return NextResponse.json(
       { error: "Missing url parameter" },
@@ -77,21 +76,14 @@ export async function GET(request) {
     await page.setViewport({ width: 1920, height: bodyHeight });
 
     const blob = await page.screenshot({ type: "png" });
-    const html = await page.content();
 
-    const screenshotBase64 = await blob.arrayBuffer().then(buffer => {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      bytes.forEach(byte => {
-        binary += String.fromCharCode(byte);
-      });
-      return btoa(binary);
-    });
+    const headers = new Headers();
 
-    return NextResponse.json({
-      screenshot: `data:image/png;base64,${screenshotBase64}`,
-      html
-    }, { status: 200 });
+    headers.set("Content-Type", "image/png");
+    headers.set("Content-Length", blob.length.toString());
+
+    // or just use new Response ❗️
+    return new NextResponse(blob, { status: 200, statusText: "OK", headers });
   } catch (err) {
     console.log(err);
     return NextResponse.json(
