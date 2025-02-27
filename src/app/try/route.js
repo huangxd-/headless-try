@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs";
-import path from "node:path";
 import cfCheck from "@/utils/cfCheck";
 import {
   localExecutablePath,
@@ -48,11 +46,6 @@ export async function GET(request) {
     const page = pages[0];
     await page.setUserAgent(userAgent);
     await page.setViewport({ width: 1920, height: 1080 });
-    const preloadFile = fs.readFileSync(
-      path.join(process.cwd(), "/src/utils/preload.js"),
-      "utf8"
-    );
-    await page.evaluateOnNewDocument(preloadFile);
     await page.goto(urlStr, {
       waitUntil: "networkidle2",
       timeout: 60000,
@@ -61,29 +54,13 @@ export async function GET(request) {
 
     console.log("page title", await page.title());
 
-    // 获取网页的实际高度
-    const bodyHeight = await page.evaluate(() => {
-      return Math.max(
-        document.body.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.clientHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight
-      );
-    });
-
-    // 设置视口高度为网页的实际高度
-    await page.setViewport({ width: 1920, height: bodyHeight });
-
-    const blob = await page.screenshot({ type: "png" });
+    // 获取网页的 HTML 内容
+    const html = await page.content();
 
     const headers = new Headers();
+    headers.set("Content-Type", "text/html");
 
-    headers.set("Content-Type", "image/png");
-    headers.set("Content-Length", blob.length.toString());
-
-    // or just use new Response ❗️
-    return new NextResponse(blob, { status: 200, statusText: "OK", headers });
+    return new NextResponse(html, { status: 200, statusText: "OK", headers });
   } catch (err) {
     console.log(err);
     return NextResponse.json(
