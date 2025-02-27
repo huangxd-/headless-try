@@ -5,7 +5,7 @@ import { Spotlight } from "@/app/components/Spotlight";
 import { LineMdGithubLoop } from "@/app/components/github-icon";
 
 export default function Home() {
-  const [imgUrl, setImgUrl] = useState("");
+  const [htmlContent, setHtmlContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -28,8 +28,8 @@ export default function Home() {
       const res = await fetch(`/try?url=${url}`, {
         next: { revalidate: 10 },
       });
-      const data = await res.blob();
-      setImgUrl(URL.createObjectURL(data));
+      const html = await res.text();
+      setHtmlContent(html);
     } catch (error) {
       console.error(error);
       alert("Something went wrong");
@@ -56,7 +56,7 @@ export default function Home() {
       <div className="w-full h-full relative z-20 flex flex-col items-center justify-center text-white">
         <div className="mb-16 max-w-lg text-center">
           <h3 className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50">
-            Try screenshot
+            Try render HTML
           </h3>
           <p className="text-md mt-3">
             Thursday, May 9th 2024 Vercel Functions for Hobby can now run up to
@@ -105,16 +105,15 @@ export default function Home() {
                       <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
                     </svg>
                   )}
-                  {loading ? "Loading..." : "Screenshot"}
+                  {loading ? "Loading..." : "Render HTML"}
                 </span>
               </button>
             </div>
           </div>
         </form>
-        {imgUrl && (
+        {htmlContent && (
           <div className="border border-gray-100/10 mt-4 max-w-4xl">
-            {/* 设置最大高度为 400px */}
-            <img src={imgUrl} alt="screenshot" style={{ maxHeight: '400px' }} />
+            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
           </div>
         )}
       </div>
