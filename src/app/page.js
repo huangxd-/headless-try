@@ -9,7 +9,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [pageHtml, setPageHtml] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,9 +28,8 @@ export default function Home() {
       const res = await fetch(`/try?url=${url}`, {
         next: { revalidate: 10 },
       });
-      const data = await res.json();
-      setImgUrl(data.screenshot);
-      setPageHtml(data.html);
+      const data = await res.blob();
+      setImgUrl(URL.createObjectURL(data));
     } catch (error) {
       console.error(error);
       alert("Something went wrong");
@@ -115,28 +113,14 @@ export default function Home() {
         </form>
         {imgUrl && (
           <div className="border border-gray-100/10 mt-4 max-w-4xl">
-            <img
-              src={imgUrl}
-              alt="screenshot"
-              style={{ maxHeight: "400px" }}
-            />
-          </div>
-        )}
-        {pageHtml && (
-          <div className="border border-gray-100/10 mt-4 max-w-4xl p-4">
-            <div
-              dangerouslySetInnerHTML={{ __html: pageHtml }}
-            ></div>
+            {/* 设置最大高度为 400px */}
+            <img src={imgUrl} alt="screenshot" style={{ maxHeight: '400px' }} />
           </div>
         )}
       </div>
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_-40%,black)]"></div>
       <div className="fixed z-30 right-4 top-4 flex items-center space-x-3">
-        <a
-          href="https://github.com/hehehai/headless-try"
-          target="_blank"
-          className="relative inline-flex overflow-hidden rounded-xl p-px"
-        >
+        <a href="https://github.com/hehehai/headless-try" target="_blank" className="relative inline-flex overflow-hidden rounded-xl p-px">
           <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#c2c2c2_0%,#505050_50%,#bebebe_100%)]" />
           <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-[11px] bg-neutral-950 px-4 py-2 text-sm font-medium text-gray-50 backdrop-blur-3xl">
             <LineMdGithubLoop />
