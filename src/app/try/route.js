@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import fsPromises from "node:fs/promises"; // 用于异步操作
-import fs from "node:fs"; // 用于同步操作
+import fsPromises from "node:fs/promises";
+import fs from "node:fs";
 import path from "node:path";
 import cfCheck from "@/utils/cfCheck";
 import {
@@ -68,17 +68,29 @@ export async function GET(request) {
     await page.setUserAgent(userAgent);
     await page.setViewport({ width: 1920, height: 1080 });
 
+    // 设置请求拦截
     await page.setRequestInterception(true);
     const resources = {};
     const assetDir = "/tmp/assets";
     await fsPromises.mkdir(assetDir, { recursive: true });
 
-    page.on("request", async (request) => {
+    // 只拦截特定资源类型，其他请求直接继续
+    page.on("request", (request) => {
       const requestUrl = request.url();
       const resourceType = request.resourceType();
       if (["image", "stylesheet", "script"].includes(resourceType)) {
+        request.continue(); // 先让请求继续，后续通过 response 事件处理
+      } else {
+        request.continue();
+      }
+    });
+
+    // 监听响应事件，下载静态资源
+    page.on("response", async (response) => {
+      const requestUrl = response.url();
+      const resourceType = response.request().resourceType();
+      if (["image", "stylesheet", "script"].includes(resourceType)) {
         try {
-          const response = await request.continue();
           const buffer = await response.buffer();
           const fileName = path.basename(requestUrl).replace(/[^a-zA-Z0-9.]/g, "_");
           const filePath = path.join(assetDir, fileName);
@@ -86,14 +98,11 @@ export async function GET(request) {
           resources[requestUrl] = `/try/assets/${fileName}`;
         } catch (err) {
           console.error(`Failed to fetch resource ${requestUrl}:`, err);
-          request.continue();
         }
-      } else {
-        request.continue();
       }
     });
 
-    // 使用同步方法读取 preload.js
+    // 加载 preload.js 并访问目标页面
     const preloadFile = fs.readFileSync(
       path.join(process.cwd(), "/src/utils/preload.js"),
       "utf8"
@@ -105,6 +114,7 @@ export async function GET(request) {
     });
     await cfCheck(page);
 
+    // 获取并重写 HTML
     let html = await page.content();
     for (const [originalUrl, newUrl] of Object.entries(resources)) {
       html = html.replace(new RegExp(originalUrl, "g"), newUrl);
