@@ -16,7 +16,6 @@ export const dynamic = "force-dynamic";
 const chromium = require("@sparticuz/chromium-min");
 const puppeteer = require("puppeteer-core");
 
-// 封装一个等待函数
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function GET(request) {
@@ -96,7 +95,7 @@ export async function GET(request) {
           if (response.status() === 200) {
             const buffer = await response.buffer();
             if (buffer && buffer.length > 0) {
-              const ext = path.extname(requestUrl) || `.${resourceType}`;
+              const ext = path.extname(requestUrl) || `.${resourceType === "stylesheet" ? "css" : resourceType}`;
               const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
               const filePath = path.join(assetDir, fileName);
               await fsPromises.writeFile(filePath, buffer);
@@ -126,8 +125,8 @@ export async function GET(request) {
     });
     await cfCheck(page);
 
-    // 使用自定义等待函数替代 waitForTimeout
-    await wait(2000); // 等待 2 秒，确保动态资源加载
+    // 等待动态资源加载
+    await wait(5000); // 增加到 5 秒，确保 JS 执行和动态 CSS 加载
 
     // 获取并重写 HTML
     let html = await page.content();
