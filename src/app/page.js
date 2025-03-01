@@ -5,7 +5,7 @@ import { Spotlight } from "@/app/components/Spotlight";
 import { LineMdGithubLoop } from "@/app/components/github-icon";
 
 export default function Home() {
-  const [imgUrl, setImgUrl] = useState("");
+  const [htmlContent, setHtmlContent] = useState(""); // 改为存储 HTML
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -28,13 +28,12 @@ export default function Home() {
       const res = await fetch(`/try?url=${url}`, {
         next: { revalidate: 10 },
       });
-      const data = await res.blob();
-      setImgUrl(URL.createObjectURL(data));
+      const html = await res.text(); // 接收 HTML 而不是 blob
+      setHtmlContent(html);
     } catch (error) {
       console.error(error);
       alert("Something went wrong");
     } finally {
-      // 秒
       setTime((Date.now() - timePoint) / 1000);
       intervalTimer && clearInterval(intervalTimer);
       setLoading(false);
@@ -105,17 +104,17 @@ export default function Home() {
                       <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
                     </svg>
                   )}
-                  {loading ? "Loading..." : "Screenshot"}
+                  {loading ? "Loading..." : "Fetch Page"}
                 </span>
               </button>
             </div>
           </div>
         </form>
-        {imgUrl && (
-          <div className="border border-gray-100/10 mt-4 max-w-4xl">
-            {/* 设置最大高度为 400px */}
-            <img src={imgUrl} alt="screenshot" style={{ maxHeight: '400px' }} />
-          </div>
+        {htmlContent && (
+          <div
+            className="border border-gray-100/10 mt-4 max-w-4xl overflow-auto"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
         )}
       </div>
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_-40%,black)]"></div>
