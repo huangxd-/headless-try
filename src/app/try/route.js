@@ -74,30 +74,40 @@ export async function GET(request) {
     const assetDir = "/tmp/assets";
     await fsPromises.mkdir(assetDir, { recursive: true });
 
-    // 只拦截特定资源类型，其他请求直接继续
+    // 拦截请求
     page.on("request", (request) => {
-      const requestUrl = request.url();
       const resourceType = request.resourceType();
       if (["image", "stylesheet", "script"].includes(resourceType)) {
-        request.continue(); // 先让请求继续，后续通过 response 事件处理
+        request.continue();
       } else {
         request.continue();
       }
     });
 
-    // 监听响应事件，下载静态资源
+    // 监听响应，下载静态资源
     page.on("response", async (response) => {
       const requestUrl = response.url();
       const resourceType = response.request().resourceType();
       if (["image", "stylesheet", "script"].includes(resourceType)) {
         try {
-          const buffer = await response.buffer();
-          const fileName = path.basename(requestUrl).replace(/[^a-zA-Z0-9.]/g, "_");
-          const filePath = path.join(assetDir, fileName);
-          await fsPromises.writeFile(filePath, buffer);
-          resources[requestUrl] = `/try/assets/${fileName}`;
+          if (response.status() === 200) {
+            const buffer = await response.buffer();
+            if (buffer && buffer.length > 0) {
+              // 使用唯一文件名，避免覆盖
+              const ext = path.extname(requestUrl) || `.${resourceType}`;
+              const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
+              const filePath = path.join(assetDir, fileName);
+              await fsPromises.writeFile(filePath, buffer);
+              resources[requestUrl] = `/try/assets/${fileName}`;
+              console.log(`Saved resource: ${requestUrl} -> ${fileName}`);
+            } else {
+              console.warn(`Empty buffer for resource ${requestUrl}`);
+            }
+          } else {
+            console.warn(`Non-200 status (${response.status()}) for resource ${requestUrl}`);
+          }
         } catch (err) {
-          console.error(`Failed to fetch resource ${requestUrl}:`, err);
+          console.error(`Failed to fetch resource ${requestUrl}:`, err.message);
         }
       }
     });
@@ -114,6 +124,9 @@ export async function GET(request) {
     });
     await cfCheck(page);
 
+    // 等待动态资源加载（可选）
+    await page.waitForTimeout(2000); // 等待 2 秒，确保动态 CSS/JS 加载
+
     // 获取并重写 HTML
     let html = await page.content();
     for (const [originalUrl, newUrl] of Object.entries(resources)) {
@@ -124,7 +137,7 @@ export async function GET(request) {
     headers.set("Content-Type", "text/html");
     return new NextResponse(html, { status: 200, headers });
   } catch (err) {
-    console.error(err);
+    console.error("Main process error:", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
