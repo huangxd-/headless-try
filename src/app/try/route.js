@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
+import fsPromises from "node:fs/promises"; // 用于异步操作
+import fs from "node:fs"; // 用于同步操作
 import path from "node:path";
 import cfCheck from "@/utils/cfCheck";
 import {
@@ -25,7 +26,7 @@ export async function GET(request) {
     const fileName = pathname.replace("/try/assets/", "");
     const filePath = path.join("/tmp/assets", fileName);
     try {
-      const fileBuffer = await fs.readFile(filePath);
+      const fileBuffer = await fsPromises.readFile(filePath);
       const headers = new Headers();
       headers.set("Content-Type", getContentType(fileName));
       return new NextResponse(fileBuffer, { status: 200, headers });
@@ -70,7 +71,7 @@ export async function GET(request) {
     await page.setRequestInterception(true);
     const resources = {};
     const assetDir = "/tmp/assets";
-    await fs.mkdir(assetDir, { recursive: true });
+    await fsPromises.mkdir(assetDir, { recursive: true });
 
     page.on("request", async (request) => {
       const requestUrl = request.url();
@@ -81,8 +82,8 @@ export async function GET(request) {
           const buffer = await response.buffer();
           const fileName = path.basename(requestUrl).replace(/[^a-zA-Z0-9.]/g, "_");
           const filePath = path.join(assetDir, fileName);
-          await fs.writeFile(filePath, buffer);
-          resources[requestUrl] = `/try/assets/${fileName}`; // 修改为当前路由下的子路径
+          await fsPromises.writeFile(filePath, buffer);
+          resources[requestUrl] = `/try/assets/${fileName}`;
         } catch (err) {
           console.error(`Failed to fetch resource ${requestUrl}:`, err);
           request.continue();
@@ -92,6 +93,7 @@ export async function GET(request) {
       }
     });
 
+    // 使用同步方法读取 preload.js
     const preloadFile = fs.readFileSync(
       path.join(process.cwd(), "/src/utils/preload.js"),
       "utf8"
