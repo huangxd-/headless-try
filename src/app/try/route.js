@@ -86,7 +86,7 @@ export async function GET(request) {
       }
     });
 
-    // 监听响应，下载静态资源
+    // 监听响应，下载静态资源2
     page.on("response", async (response) => {
       const requestUrl = response.url();
       const resourceType = response.request().resourceType();
